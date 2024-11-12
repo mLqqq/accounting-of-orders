@@ -1,3 +1,4 @@
+using System.Text.Json;
 List<string> Notifications = new List<string>();
 List<string> NotificationsBot = new List<string>();
 Repository repository = new Repository();
@@ -11,7 +12,7 @@ repository.Orders = Orders;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("Open", builder => builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+    options.AddPolicy("Open", builder => builder.WithOrigins("http://127.0.0.1:5500").AllowAnyHeader().AllowAnyMethod());
 });
 var app = builder.Build();
 app.UseCors("Open");
@@ -97,6 +98,14 @@ app.MapPut("/order/update/id/{id}", (int id, Order order) =>
     }
     Notifications.Add($"Заявка {id} обновлена");
     NotificationsBot.Add($"Заявка {id} обновлена");
+    if (order.StartDate != null)
+    {
+        orderOld.StartDate = order.StartDate;
+    }
+    if (order.EndDate != null)
+    {
+        orderOld.EndDate = order.EndDate;
+    }
 });
 app.MapDelete("/order/delete/id/{id}", (int id) => repository.DeleteOrder(id));
 app.Run();
@@ -107,17 +116,102 @@ public enum Status
 class Order
 {
     public int Id { get; set; }
-    public DateTime StartDate { get; set; }
-    public DateTime EndDate { get; set; }
-    public string Device { get; set; }
-    public string ProblemType { get; set; }
-    public string Description { get; set; }
-    public string Client { get; set; }
+    private DateTime? startDate;
+    private DateTime? endDate;
+    private string device;
+    private string problemType;
+    private string description;
+    private string client;
+    private Status status;
+    public DateTime? StartDate
+    {
+        get => startDate;
+        set
+        {
+            if (value.HasValue)
+            {
+                startDate = value;
+            }
+            else
+            {
+                throw new ArgumentException("Заполните дату");
+            }
+        }
+    }
+    public DateTime? EndDate
+    {
+        get => endDate;
+        set
+        {
+            if (value.HasValue)
+            {
+                endDate = value;
+            }
+            else
+            {
+                throw new ArgumentException("Заполните дату");
+            }
+        }
+    }
+    public string Device { 
+        get =>device;
+        set 
+        {
+            if (!string.IsNullOrEmpty(value))
+                device = value;
+            else
+                throw new ArgumentException("Заполните название устройства");
+        }
+    }
+    public string ProblemType {
+        get => problemType;
+        set
+        {
+            if (!string.IsNullOrEmpty(value))
+                problemType = value;
+            else
+                throw new ArgumentException("Заполните тип проблемы");
+        } 
+    }
+    public string Description { 
+        get => description; 
+        set        
+        {
+            if (!string.IsNullOrEmpty(value))
+            description = value;
+        else
+            throw new ArgumentException("Заполните описания");
+        } 
+    }
+    public string Client { 
+        get => client; 
+        set
+        {
+            if (!string.IsNullOrEmpty(value))
+                client = value;
+            else
+                throw new ArgumentException("Заполнитн имя клиента");
+        }
+    }
     public string Master { get; set; }
     public string Comment { get; set; }
-
-    private Status status;
-    public Status Status { get; set; }
+    public Status Status
+    {
+        get => status;
+        set
+        {
+            if (value == Status.Complete)
+            {
+                EndDate = DateTime.Now;
+            }
+            status = value;
+            if (value == Status.InWaiting)
+            {
+                EndDate = DateTime.MinValue;
+            }
+            status = value;
+        }
+    }
     public Order() { } 
     public Order(string device, string problemType, string description, string client)
     {
@@ -162,7 +256,7 @@ class Repository
         var completeOrders = Orders.Where(o => o.Status == Status.Complete);
         if (completeOrders.Any())
         {
-            return TimeSpan.FromSeconds(completeOrders.Average(o => (o.EndDate - o.StartDate).Seconds));
+            return TimeSpan.FromSeconds((double)completeOrders.Average(o => (o.EndDate - o.StartDate)?.Seconds));
         }
         return TimeSpan.Zero;
     }
