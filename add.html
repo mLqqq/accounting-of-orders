@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Добавление</title>
+</head>
+<body>
+    <header>
+        <a href="index.html">Главная</a>
+        <a href="add.html">Добавление</a>
+        <a href="update.html">Обновление</a>
+        <a href="stat.html">Статистика</a>
+    </header>
+    <main>
+        <form>
+            <div >
+                <input id="device" type="text" placeholder="Оборудование"/>
+            </div>
+            <div>
+                <input id = "problemType" type="text" placeholder="Тип неисправности"/>
+            </div>
+            <div>
+                <input id="description" type="text" placeholder="Описание"/>
+            </div>
+            <div>
+                <input id="client" type="text" placeholder="Клиента"/>
+            </div>
+            <div >
+                <input id="send" type="button" value="Отправить"/>
+            </div>
+        </form>
+    </main>
+    <script>
+        var send = document.getElementById("send");
+        send.addEventListener("click",AddOrder);
+
+        async function AddOrder() 
+        {
+            var device = document.getElementById("device").value;
+            var problemType = document.getElementById("problemType").value;
+            var description = document.getElementById("description").value;
+            var client = document.getElementById("client").value;
+            var headers = {"Content-Type": "application/json" };
+            var body = JSON.stringify
+            ({
+                device: device,
+                problemType : problemType,
+                description : description,
+                client : client,
+            });          
+            await fetch("https://localhost:7161/order/add", {method: "POST", headers : headers, body : body}); 
+        }
+    </script>
+</body>
+</html>
