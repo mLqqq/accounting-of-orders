@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <header>
+        <a href="index.html">Главная</a>
+        <a href="add.html">Добавление</a>
+        <a href="update.html">Обновление</a>
+        <a href="stat.html">Статистика</a>
+        <a href="update1.html">Обновление</a>
+
+        
+    </header>
+    <main>
+        <form>
+            <div >
+                <input id="id" type="text" placeholder="Id"/>
+            </div>
+            <div >
+                <input id="device" type="text" placeholder="Оборудование"/>
+            </div>
+            <div>
+                <input id = "problemType" type="text" placeholder="Тип неисправности"/>
+            </div>
+            <div>
+                <input id="description" type="text" placeholder="Описание"/>
+            </div>
+            <div>
+                <input id="client" type="text" placeholder="Клиента"/>
+            </div>
+            <div>
+                <input id="status" type="text" placeholder="Статус"/>
+            </div>
+            <div >
+                <input id="send" type="button" value="Отправить"/>
+            </div>
+        </form>
+    </main>
+    <script>
+        var send = document.getElementById("send");
+        send.addEventListener("click",FindOrder);
+
+        async function FindOrder() 
+        {
+            var id = document.getElementById("id").value;
+            var device = document.getElementById("device").value;
+            var problemType = document.getElementById("problemType").value;
+            var description = document.getElementById("description").value;
+            var client = document.getElementById("client").value;
+            var status = parseInt(document.getElementById("status").value, 10);
+            var headers = {"Content-Type": "application/json" };
+            var body = JSON.stringify
+            ({
+                id : id,
+                device: device,
+                problemType : problemType,
+                description : description,
+                client : client,
+                status : status,
+            });          
+            await fetch(`https://localhost:7161/order/update/id/${id}`, {method: "PUT", headers : headers, body : body}); 
+        }
+    </script>
+</body>
+</html>
