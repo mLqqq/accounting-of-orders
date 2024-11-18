@@ -1,4 +1,5 @@
 using System.Text.Json;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 List<string> Notifications = new List<string>();
 List<string> NotificationsBot = new List<string>();
 Repository repository = new Repository();
@@ -12,10 +13,23 @@ repository.Orders = Orders;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("Open", builder => builder.WithOrigins("http://127.0.0.1:5500").AllowAnyHeader().AllowAnyMethod());
+    options.AddPolicy("Open", builder => builder.WithOrigins("http://127.0.0.1:5501").AllowAnyHeader().AllowAnyMethod());
 });
 var app = builder.Build();
 app.UseCors("Open");
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next.Invoke();
+    }
+    catch (ArgumentException ex)
+    {
+        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsync(JsonSerializer.Serialize(ex.Message ));
+    }
+});
 app.MapGet("/", () =>
 {
     var data = new
@@ -23,7 +37,6 @@ app.MapGet("/", () =>
         orders = repository.ReadAll(),
         notifications = Notifications.ToList(),
     };
-    Console.WriteLine(Notifications);
     Notifications.Clear();
     return Results.Json(data);
 });
@@ -37,7 +50,14 @@ app.MapGet("/bot", () =>
     NotificationsBot.Clear();
     return Results.Json(data);
 });
-app.MapGet("/order/id/{id}", (int id) => repository.Read(id));
+app.MapGet("/order/id/{id}", (int id) =>
+{
+    var data = new
+    {
+        orders = new[] {repository.Read(id)}
+    };
+    return Results.Json(data);
+});
 app.MapGet("/statistics", () =>
 {
     var statistics = new
@@ -50,64 +70,74 @@ app.MapGet("/statistics", () =>
 });
 app.MapPost("/order/add", (Order order) =>
 {
-    repository.AddOrder(new Order(order.Device, order.ProblemType, order.Description, order.Client));
-    Notifications.Add($"Заявка добавлена");
-    NotificationsBot.Add($"Заявка добавлена");
+        repository.AddOrder(new Order(order.Device, order.ProblemType, order.Description, order.Client));
+        Notifications.Add("Order added");
+        NotificationsBot.Add("Order added");
+    return Results.Ok("Order added");
 });
 app.MapPut("/order/update/id/{id}", (int id, Order order) =>
 {
-    var orderOld = repository.Read(id);
-    if (!string.IsNullOrEmpty(order.Device))
-    {
-        orderOld.Device = order.Device;
-    }
-    if (!string.IsNullOrEmpty(order.ProblemType))
-    {
-        orderOld.ProblemType = order.ProblemType;
-    }
-    if (!string.IsNullOrEmpty(order.Description))
-    {
-        orderOld.Description = order.Description;
-    }
-    if (!string.IsNullOrEmpty(order.Client))
-    {
-        orderOld.Client = order.Client;
-    }
-    if (Enum.IsDefined(typeof(Status), order.Status))
+        var orderOld = repository.Read(id);
+        if (!string.IsNullOrEmpty(order.Device))
+        {
+            orderOld.Device = order.Device;
+        }
+        if (!string.IsNullOrEmpty(order.ProblemType))
+        {
+            orderOld.ProblemType = order.ProblemType;
+        }
+        if (!string.IsNullOrEmpty(order.Description))
+        {
+            orderOld.Description = order.Description;
+        }
+        if (!string.IsNullOrEmpty(order.Client))
+        {
+            orderOld.Client = order.Client;
+        }
+        if (Enum.IsDefined(typeof(Status), order.Status))
     {
         if (order.Status == Status.Complete)
         {
-            Notifications.Add($"Заявка {id} выполнена");
-            NotificationsBot.Add($"Заявка {id} выполнена");
+            Notifications.Add($"Order {id} complete");
+            NotificationsBot.Add($"Order {id} complete");
         }
-        orderOld.Status = order.Status;
         if (order.Status == Status.InProcess)
         {
-            Notifications.Add($"Заявка {id} в работе");
-            NotificationsBot.Add($"Заявка {id} работе");
+            Notifications.Add($"Order {id} in process");
+            NotificationsBot.Add($"Order {id} process");
+        }
+        if (order.Status == Status.InWaiting)
+        {
+            Notifications.Add($"Order {id} in waiting");
+            NotificationsBot.Add($"Order {id} in waiting");
         }
         orderOld.Status = order.Status;
     }
-    if (!string.IsNullOrEmpty(order.Master))
-    {
-        orderOld.Master = order.Master;
-    }
-    if (!string.IsNullOrEmpty(order.Comment))
-    {
-        orderOld.Comment = order.Comment;
-    }
-    Notifications.Add($"Заявка {id} обновлена");
-    NotificationsBot.Add($"Заявка {id} обновлена");
-    if (order.StartDate != null)
-    {
-        orderOld.StartDate = order.StartDate;
-    }
-    if (order.EndDate != null)
-    {
-        orderOld.EndDate = order.EndDate;
-    }
+        if (!string.IsNullOrEmpty(order.Master))
+        {
+            orderOld.Master = order.Master;
+        }
+        if (!string.IsNullOrEmpty(order.Comment))
+        {
+            orderOld.Comment = order.Comment;
+        }
+        if (order.StartDate != null)
+        {
+            orderOld.StartDate = order.StartDate;
+        }
+        if (order.EndDate != null)
+        {
+            orderOld.EndDate = order.EndDate;
+        }
+        Notifications.Add($"Order {id} update");
+        NotificationsBot.Add($"Order {id} update");
+    return Results.Ok("Order update");
 });
-app.MapDelete("/order/delete/id/{id}", (int id) => repository.DeleteOrder(id));
+app.MapDelete("/order/delete/id/{id}", (int id) => 
+{ 
+    repository.DeleteOrder(id);
+    return Results.Ok("Order delete");
+});
 app.Run();
 public enum Status
 {
@@ -134,7 +164,7 @@ class Order
             }
             else
             {
-                throw new ArgumentException("Заполните дату");
+                throw new ArgumentException("Fill in the date");
             }
         }
     }
@@ -149,48 +179,56 @@ class Order
             }
             else
             {
-                throw new ArgumentException("Заполните дату");
+                throw new ArgumentException("Fill in the date");
             }
         }
     }
-    public string Device { 
-        get =>device;
-        set 
+    public string Device
+    {
+        get => device;
+        set
         {
-            if (!string.IsNullOrEmpty(value))
-                device = value;
-            else
-                throw new ArgumentException("Заполните название устройства");
+            if (string.IsNullOrEmpty(value))
+            {
+                throw new ArgumentException("Fill in the name of the device.");
+            }
+            device = value;
         }
     }
-    public string ProblemType {
+    public string ProblemType
+    {
         get => problemType;
         set
         {
-            if (!string.IsNullOrEmpty(value))
-                problemType = value;
-            else
-                throw new ArgumentException("Заполните тип проблемы");
-        } 
+            if (string.IsNullOrEmpty(value))
+            {
+                throw new ArgumentException("Fill in the problem type.");
+            }
+            problemType = value;
+        }
     }
-    public string Description { 
-        get => description; 
-        set        
-        {
-            if (!string.IsNullOrEmpty(value))
-            description = value;
-        else
-            throw new ArgumentException("Заполните описания");
-        } 
-    }
-    public string Client { 
-        get => client; 
+    public string Description
+    {
+        get => description;
         set
         {
-            if (!string.IsNullOrEmpty(value))
-                client = value;
-            else
-                throw new ArgumentException("Заполнитн имя клиента");
+            if (string.IsNullOrEmpty(value))
+            {
+                throw new ArgumentException("Fill in the description.");
+            }
+            description = value;
+        }
+    }
+    public string Client
+    {
+        get => client;
+        set
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                throw new ArgumentException("Fill in the client name.");
+            }
+            client = value;
         }
     }
     public string Master { get; set; }
@@ -237,7 +275,12 @@ class Repository
     }
     public Order Read(int id)
     {
-        return Orders.ToList().Find(x => x.Id == id);
+        var order = Orders.ToList().Find(x => x.Id == id);
+        if (order == null)
+        {
+            throw new ArgumentException($"Order with id {id} not found.");
+        }
+        return order;
     }
     public List<Order> ReadAll()
     {
