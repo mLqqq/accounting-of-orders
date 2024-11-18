@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ремонт</title>
+</head>
+<body>
+    <header>
+        <a href="index.html">Главная</a>
+        <a href="add.html">Добавление</a>
+        <a href="update.html">Обновление</a>
+        <a href="stat.html">Статистика</a>
+    </header>
+    <main>
+        <form>
+            <div >
+                <input id="id" type="text" placeholder="Поиск по айди"/>
+                <input id="send" type="button" value="Отправить"/>
+            </div>
+        </form>
+        <table id="table">
+        </table>
+    </main>
+    <script>
+        PrintAllOrders()  
+        document.getElementById("send").addEventListener("click", FindOrder);
+        async function FindOrder() 
+        {
+        var id = document.getElementById("id").value;
+        var response = await fetch(`https://localhost:7161/order/id/${id}`, { method: "GET" });
+        var order = await response.json();
+        if (!response.ok) {
+                alert(order);
+            } 
+        else
+        {
+            PrintAllOrders(order);
+        }
+        }
+        async function PrintAllOrders(orders) {
+        if (!orders) {
+        var response = await fetch("https://localhost:7161/", { method: "GET" });
+        orders = await response.json();
+        }
+        var table = document.getElementById("table");
+        table.innerHTML = `
+        <tr>
+            <td>ID</td>
+            <td>Оборудование</td>
+            <td>Тип неисправности</td>
+            <td>Описание</td>
+            <td>Клиент</td>
+            <td>Статус</td>
+
+        </tr>
+        `;
+            orders.orders.forEach(order => 
+            {
+                var tr = document.createElement("tr");
+                tr.setAttribute("id","tr" + order.id);
+                tr.append(CreateTd(order.id));
+                tr.append(CreateTd(order.device));
+                tr.append(CreateTd(order.problemType));
+                tr.append(CreateTd(order.description));
+                tr.append(CreateTd(order.client));
+                tr.append(CreateTd(order.status));
+                table.append(tr);
+            });
+            if (orders.notifications.length > 0) 
+            {
+            alert(orders.notifications.join("\n"));
+            }  
+        }
+        function CreateTd(text)
+        { 
+            var td = document.createElement("td");
+            td.append(text);
+            return td;
+        }
+    </script>   
+</body>
+</html>
