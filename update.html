@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Обновление</title>
 </head>
 <body>
     <header>
@@ -11,9 +11,6 @@
         <a href="add.html">Добавление</a>
         <a href="update.html">Обновление</a>
         <a href="stat.html">Статистика</a>
-        <a href="update1.html">Обновление</a>
-
-        
     </header>
     <main>
         <form>
@@ -43,7 +40,6 @@
     <script>
         var send = document.getElementById("send");
         send.addEventListener("click",FindOrder);
-
         async function FindOrder() 
         {
             var id = document.getElementById("id").value;
@@ -61,8 +57,12 @@
                 description : description,
                 client : client,
                 status : status,
-            });          
-            await fetch(`https://localhost:7161/order/update/id/${id}`, {method: "PUT", headers : headers, body : body}); 
+            });
+            var response = await fetch(`https://localhost:7161/order/update/id/${id}`, {method: "PUT", headers : headers, body : body});
+            if (response) {
+            var message = await response.json();
+                alert(message);
+            }
         }
     </script>
 </body>
