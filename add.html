@@ -34,7 +34,6 @@
     <script>
         var send = document.getElementById("send");
         send.addEventListener("click",AddOrder);
-
         async function AddOrder() 
         {
             var device = document.getElementById("device").value;
@@ -49,7 +48,11 @@
                 description : description,
                 client : client,
             });          
-            await fetch("https://localhost:7161/order/add", {method: "POST", headers : headers, body : body}); 
+            var response = await fetch("https://localhost:7161/order/add", {method: "POST", headers : headers, body : body});
+            if (response) {
+            var message = await response.json();
+                alert(message);
+            }
         }
     </script>
 </body>
