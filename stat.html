@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Статистика</title>
+</head>
+<body>
+    <header>
+        <a href="index.html">Главная</a>
+        <a href="add.html">Добавление</a>
+        <a href="update.html">Обновление</a>
+        <a href="stat.html">Статистика</a>
+    </header>
+    <main>
+        
+        <table >
+            <tr><th>Статистика</th></tr>
+        </table>
+    </main>
+    <script>
+        var table = document.querySelector("table")
+        async function PrintAllOrders() {
+            var response = await fetch("https://localhost:7161/statistics", { method: "GET" });
+            var statistics = await response.json();
+            table.append(CreateTr(`<td>Количество выполненых заявок:</td><td>${statistics.completedOrders}</td>`))
+            table.append(CreateTr(`<td>Среднее время выполнения заявок:</td><td>${statistics.averageExecutionTime}</td>`))
+            table.append(CreateTr(`<td>Типы неисправностей:</td>`))
+            Object.entries(statistics.problemTypeStatistics).forEach(([key, value]) => {
+                table.append(CreateTr(`<td>${key}:</td><td>${value}</td>`));
+            });
+        }
+        function CreateTr(text) {
+            var tr = document.createElement("tr");
+            tr.innerHTML = text; 
+            return tr;
+        }
+        PrintAllOrders();
+    </script>   
+</body>
+</html>
