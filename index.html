@@ -11,6 +11,8 @@
         <a href="add.html">Добавление</a>
         <a href="update.html">Обновление</a>
         <a href="stat.html">Статистика</a>
+        <a href="login.html">Авторизации</a>
+
     </header>
     <main>
         <form>
@@ -23,12 +25,17 @@
         </table>
     </main>
     <script>
+        var token = sessionStorage.getItem('token');
+        var headers = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+        };
         PrintAllOrders()  
         document.getElementById("send").addEventListener("click", FindOrder);
         async function FindOrder() 
         {
         var id = document.getElementById("id").value;
-        var response = await fetch(`https://localhost:7161/order/id/${id}`, { method: "GET" });
+        var response = await fetch(`https://localhost:7161/order/id/${id}`, { method: "GET"});
         var order = await response.json();
         if (!response.ok) {
                 alert(order);
@@ -40,7 +47,8 @@
         }
         async function PrintAllOrders(orders) {
         if (!orders) {
-        var response = await fetch("https://localhost:7161/", { method: "GET" });
+
+        var response = await fetch("https://localhost:7161/", { method: "GET", headers : headers});
         orders = await response.json();
         }
         var table = document.getElementById("table");
@@ -78,6 +86,6 @@
             td.append(text);
             return td;
         }
-    </script>   
+    </script>
 </body>
 </html>
